@@ -22,16 +22,26 @@ Futhark snippet to be included in a larger Futhark source file.
 
 # Compilation
 
-To generated the `futgliffer` executable, execute the following commands:
+To generated the `futgliffer` executable, execute the following command:
 
 ```
 $ make -C src
 ```
 
-# Requirement
+To generate a Futhark `font.fut` file to include in your program,
+execute the following command:
+
+```
+$ make -C clean all
+```
+
+# Requirements
 
 You need a Standard ML compiler such as
 [MLKit](http://github.com/melsman/mlkit) or MLton.
+
+You need to install `xml-to-json-fast`; see
+https://github.com/sinelaw/xml-to-json-fast
 
 # LICENSE
 

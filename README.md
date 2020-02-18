@@ -25,15 +25,17 @@ Futhark snippet to be included in a larger Futhark source file.
 To generated the `futgliffer` executable, execute the following command:
 
 ```
-$ make -C src
+$ make clean futgliffer -C src
 ```
 
 To generate a Futhark `font.fut` file to include in your program,
 execute the following command:
 
 ```
-$ make -C clean all
+$ make clean all -C test
 ```
+
+This command will generate the file `test/font.fut`.
 
 # Requirements
 

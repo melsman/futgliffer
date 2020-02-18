@@ -1,0 +1,7 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+in
+(*  kitlib/kitlib.mlb*)
+  json.mlb
+  futgliffer.sml
+end

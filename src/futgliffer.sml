@@ -57,6 +57,25 @@ fun advance json =
         end
       | _ => die "advance.expecting ARRAY"
 
+fun getChar json =
+    case look json ["items"] of
+        J.ARRAY ts =>
+        let val elem = List.filter (fn J.OBJECT obj => (case J.objLook obj "name" of
+                                                            SOME (J.STRING "unicode") => true
+                                                          | _ => false)
+                                   | _ => false) ts
+        in case elem of
+               [elem] => (case look elem ["attrs"] of
+                              J.OBJECT obj => (case J.objLook obj "hex" of
+                                                   SOME (J.STRING s) => (case Word.fromString ("0x" ^ s) of
+                                                                             SOME w => Word.toInt w
+                                                                           | NONE => die "expecting hexadecimal integer as unicode hex value")
+                                                 | _ => die "expecting hex attribute for unicode item")
+                            | _ => die "expecting attrs")
+             | _ => die "expecting one unicode field"
+        end
+      | _ => die "unicode.expecting ARRAY"
+
 fun contours json =
     case look json ["items"] of
         J.ARRAY ts =>
@@ -135,7 +154,7 @@ fun processPoints (first:point list) (points:point list) (jpoints:J.t list)
              | (p,MOVE) => processPoints first points jpoints (lines,curves)
         end
 
-fun processContour (json:J.t) : line list * cbezier list * int option =
+fun processContour (json:J.t) : {lines:line list,curves:cbezier list,advance:int option,char:int option} =
     let val points =
             case json of
                 J.OBJECT obj => (case J.objLook obj "items" of
@@ -143,7 +162,7 @@ fun processContour (json:J.t) : line list * cbezier list * int option =
                                    | _ => die "processContour: expecting ARRAY")
               | _ => die "processContour: expecting OBJECT"
         val (lines,curves) = processPoints nil nil points (nil,nil)
-    in (lines,curves,NONE)
+    in {lines=lines,curves=curves,advance=NONE,char=NONE}
     end
 
 val name = case look json ["attrs","name"] of
@@ -165,7 +184,7 @@ fun pp_line ((p0,p1):line) : string =
 fun pp_curve ((p0,p1,p2,p3):cbezier) : string =
     "curve " ^ String.concatWith " " (map pp_point [p0,p1,p2,p3])
 
-fun pp_pc (ty:string) (lines,curves,advance) : string =
+fun pp_pc (ty:string) {lines,curves,advance,char} : string =
     let fun pp_elems pp elems =
             case elems of
                 nil => "[]"
@@ -174,11 +193,14 @@ fun pp_pc (ty:string) (lines,curves,advance) : string =
                       "\n    ]")
         fun maybe_add_advance NONE s = s
           | maybe_add_advance (SOME i) s = s ^ ",\n   advance=" ^ int_to_string i
+        fun maybe_add_char NONE s = s
+          | maybe_add_char (SOME i) s = s ^ ",\n   char=" ^ int_to_string i ^ "u8"
         val rows =
             ["let " ^ ty ^ "_" ^ name ^ " : " ^ ty ^ " = ",
              "  {lines=" ^ pp_elems pp_line lines ^ ",",
-             maybe_add_advance advance
-             ("   curves=" ^ pp_elems pp_curve curves),
+             maybe_add_char char
+             (maybe_add_advance advance
+              ("   curves=" ^ pp_elems pp_curve curves)),
              "  }",
              ""]
     in String.concatWith "\n" rows
@@ -187,11 +209,12 @@ fun pp_pc (ty:string) (lines,curves,advance) : string =
 fun flatten nil = nil
   | flatten (x::xs) = x @ flatten xs
 
-val glyph : line list * cbezier list * int option =
-    let val lines = map #1 pcs
-        val curves = map #2 pcs
+val glyph : {lines:line list,curves: cbezier list,advance:int option,char:int option} =
+    let val lines = map #lines pcs
+        val curves = map #curves pcs
         val adv = advance json
-    in (flatten lines, flatten curves, SOME adv)
+        val char = getChar json
+    in {lines=flatten lines, curves=flatten curves, advance=SOME adv,char=SOME char}
     end
 
 val () = if !glyph_ref then print (pp_pc "glyph" glyph)

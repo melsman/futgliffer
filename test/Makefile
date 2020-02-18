@@ -1,4 +1,5 @@
 
+FONT_NAME=OpenBaskerville
 FONT=OpenBaskerville.ufo
 #FONT=SourceCodePro-Regular.ufo
 #FONT=RobotoSubset-Regular.ufo
@@ -38,15 +39,37 @@ font.fut: $(GLIF_FUTS)
 	echo "" >> $@
 	cat prefont.fut >> $@
 	echo >> $@
+	echo "module $(FONT_NAME) : font = {" >> $@
+	echo >> $@
+	cat internalfont.fut >> $@
+	echo >> $@
 	cat $(GLIF_FUTS) >> $@
 	echo >> $@
-	echo "let font_curves : []cbezier = $(GLYPH_BINDINGS:%=%.curves ++) []" >> $@
+	echo "let curves0 : []cbezier = $(GLYPH_BINDINGS:%=%.curves ++) []" >> $@
 	echo >> $@
-	echo "let font_lines : []line = $(GLYPH_BINDINGS:%=%.lines ++) []" >> $@
+	echo "let C : i32 = length curves0" >> $@
 	echo >> $@
-	echo "let font_idx_curves : []i32 = [0$(GLYPH_BINDINGS:%=,length %.curves)]" >> $@
+	echo "let curves = (curves0 :> [C]cbezier)" >> $@
 	echo >> $@
-	echo "let font_idx_lines : []i32 = [0$(GLYPH_BINDINGS:%=,length %.lines)]" >> $@
+	echo "let lines0 : []line = $(GLYPH_BINDINGS:%=%.lines ++) []" >> $@
+	echo >> $@
+	echo "let L : i32 = length lines0" >> $@
+	echo >> $@
+	echo "let lines = (lines0 :> [L]line) " >> $@
+	echo >> $@
+	echo "let font_advances0 : []i32 = [$(GLYPH_BINDINGS:%=%.advance,)0]" >> $@
+	echo >> $@
+	echo "let N : i32 = length font_advances0 - 1" >> $@
+	echo >> $@
+	echo "let font_advances : [N]i32 = ([$(GLYPH_BINDINGS:%=%.advance,)0])[:N]" >> $@
+	echo >> $@
+	echo "let font_ncurves : [N]i32 = ([$(GLYPH_BINDINGS:%=length %.curves,)0])[:N]" >> $@
+	echo >> $@
+	echo "let font_nlines : [N]i32 = ([$(GLYPH_BINDINGS:%=length %.lines,)0])[:N]" >> $@
+	echo >> $@
+	echo "let font_chars : [N]u8 = ([$(GLYPH_BINDINGS:%=%.char,)0])[:N]" >> $@
+	echo >> $@
+	cat postfont.fut >> $@
 
 .PHONY: clean
 clean:
